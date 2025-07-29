@@ -319,7 +319,24 @@ app.post('/api/auth/login', async (req, res) => {
     user = await User.findOne({ email });
     console.log('🔍 تم البحث في users collection:', !!user);
     
-    // If not found in users, check admins collection
+    // If not found in users, check doctors collection
+    if (!user) {
+      const doctor = await Doctor.findOne({ email });
+      console.log('🔍 تم البحث في doctors collection:', !!doctor);
+      if (doctor) {
+        user = {
+          _id: doctor._id,
+          name: doctor.name,
+          email: doctor.email,
+          password: doctor.password,
+          role: 'doctor',
+          user_type: 'doctor',
+          avatar: doctor.image
+        };
+      }
+    }
+    
+    // If not found in doctors, check admins collection
     if (!user) {
       const admin = await mongoose.connection.db.collection('admins').findOne({ email });
       console.log('🔍 تم البحث في admins collection:', !!admin);
@@ -359,7 +376,13 @@ app.post('/api/auth/login', async (req, res) => {
     // For doctors, get additional profile information
     let doctorProfile = null;
     if (user.role === 'doctor' || user.user_type === 'doctor') {
-      doctorProfile = await Doctor.findOne({ userId: user._id });
+      // If user is from doctors collection, use the doctor data directly
+      if (user._id && user.role === 'doctor') {
+        doctorProfile = await Doctor.findById(user._id);
+      } else {
+        // If user is from users collection, find doctor profile by userId
+        doctorProfile = await Doctor.findOne({ userId: user._id });
+      }
       console.log('🔍 تم البحث عن ملف الطبيب:', !!doctorProfile);
     }
     
