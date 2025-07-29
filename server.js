@@ -456,9 +456,15 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Doctor Registration Route
-app.post('/api/auth/register-doctor', upload.single('license'), async (req, res) => {
+app.post('/api/auth/register-doctor', upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'idFront', maxCount: 1 },
+  { name: 'idBack', maxCount: 1 },
+  { name: 'syndicateFront', maxCount: 1 },
+  { name: 'syndicateBack', maxCount: 1 }
+]), async (req, res) => {
   try {
-    const { name, email, password, phone, specialization, experience, bio, consultationFee, availableDays, availableHours } = req.body;
+    const { name, email, password, phone, specialization, experience, experienceYears, bio, consultationFee, availableDays, availableHours, workTimes } = req.body;
     
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -482,19 +488,33 @@ app.post('/api/auth/register-doctor', upload.single('license'), async (req, res)
     
     await user.save();
     
+    // معالجة الملفات المرفوعة
+    const files = req.files || {};
+    const imageFile = files.image ? files.image[0] : null;
+    const idFrontFile = files.idFront ? files.idFront[0] : null;
+    const idBackFile = files.idBack ? files.idBack[0] : null;
+    const syndicateFrontFile = files.syndicateFront ? files.syndicateFront[0] : null;
+    const syndicateBackFile = files.syndicateBack ? files.syndicateBack[0] : null;
+
     // Create doctor profile
     const doctor = new Doctor({
       userId: user._id,
       email: user.email,
       name: user.name,
       phone: user.phone,
+      specialty: specialization,
       specialization,
-      experience,
+      experience: experience || experienceYears || 0,
       bio,
-      consultationFee,
+      consultationFee: consultationFee || 0,
       availableDays: JSON.parse(availableDays || '[]'),
       availableHours: JSON.parse(availableHours || '{}'),
-      license: req.file ? req.file.filename : req.body.license
+      workTimes: JSON.parse(workTimes || availableDays || '[]'),
+      image: imageFile ? `/uploads/${imageFile.filename}` : null,
+      idFront: idFrontFile ? `/uploads/${idFrontFile.filename}` : null,
+      idBack: idBackFile ? `/uploads/${idBackFile.filename}` : null,
+      syndicateFront: syndicateFrontFile ? `/uploads/${syndicateFrontFile.filename}` : null,
+      syndicateBack: syndicateBackFile ? `/uploads/${syndicateBackFile.filename}` : null
     });
     
     await doctor.save();
@@ -515,9 +535,15 @@ app.post('/api/auth/register-doctor', upload.single('license'), async (req, res)
 });
 
 // Doctor Profile Routes
-app.post('/api/doctors', upload.single('license'), async (req, res) => {
+app.post('/api/doctors', upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'idFront', maxCount: 1 },
+  { name: 'idBack', maxCount: 1 },
+  { name: 'syndicateFront', maxCount: 1 },
+  { name: 'syndicateBack', maxCount: 1 }
+]), async (req, res) => {
   try {
-    const { userId, specialization, experience, bio, consultationFee, availableDays, availableHours } = req.body;
+    const { userId, specialization, experience, experienceYears, bio, consultationFee, availableDays, availableHours, workTimes } = req.body;
     
     // Check if user exists and is a doctor
     const user = await User.findById(userId);
@@ -531,15 +557,29 @@ app.post('/api/doctors', upload.single('license'), async (req, res) => {
       return res.status(400).json({ message: 'Doctor profile already exists' });
     }
     
+    // معالجة الملفات المرفوعة
+    const files = req.files || {};
+    const imageFile = files.image ? files.image[0] : null;
+    const idFrontFile = files.idFront ? files.idFront[0] : null;
+    const idBackFile = files.idBack ? files.idBack[0] : null;
+    const syndicateFrontFile = files.syndicateFront ? files.syndicateFront[0] : null;
+    const syndicateBackFile = files.syndicateBack ? files.syndicateBack[0] : null;
+
     const doctor = new Doctor({
       userId,
+      specialty: specialization,
       specialization,
-      license: req.file ? req.file.filename : req.body.license,
-      experience,
+      experience: experience || experienceYears || 0,
       bio,
-      consultationFee,
+      consultationFee: consultationFee || 0,
       availableDays: JSON.parse(availableDays || '[]'),
-      availableHours: JSON.parse(availableHours || '{}')
+      availableHours: JSON.parse(availableHours || '{}'),
+      workTimes: JSON.parse(workTimes || availableDays || '[]'),
+      image: imageFile ? `/uploads/${imageFile.filename}` : null,
+      idFront: idFrontFile ? `/uploads/${idFrontFile.filename}` : null,
+      idBack: idBackFile ? `/uploads/${idBackFile.filename}` : null,
+      syndicateFront: syndicateFrontFile ? `/uploads/${syndicateFrontFile.filename}` : null,
+      syndicateBack: syndicateBackFile ? `/uploads/${syndicateBackFile.filename}` : null
     });
     
     await doctor.save();
@@ -566,7 +606,13 @@ app.get('/api/doctors', async (req, res) => {
       ]
     }).select('-password -idFront -idBack -syndicateFront -syndicateBack');
     
-    res.json(doctors);
+    // إضافة URL كامل للصور
+    const doctorsWithImages = doctors.map(doctor => ({
+      ...doctor.toObject(),
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null
+    }));
+    
+    res.json(doctorsWithImages);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -576,13 +622,19 @@ app.get('/api/doctors/:id', async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id)
       .populate('userId', 'name email avatar phone')
-      .select('-license');
+      .select('-idFront -idBack -syndicateFront -syndicateBack');
     
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
     
-    res.json(doctor);
+    // إضافة URL كامل للصورة
+    const doctorWithImage = {
+      ...doctor.toObject(),
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null
+    };
+    
+    res.json(doctorWithImage);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -644,13 +696,38 @@ app.get('/api/doctor/:doctorId', async (req, res) => {
   try {
     const { doctorId } = req.params;
     
-    const doctor = await Doctor.findById(doctorId).select('-password');
+    console.log('🔍 جلب بيانات الطبيب:', doctorId);
+    
+    // البحث في collection الأطباء أولاً
+    let doctor = await Doctor.findById(doctorId).select('-password');
+    
+    // إذا لم يتم العثور عليه، ابحث في collection المستخدمين
+    if (!doctor) {
+      const user = await User.findById(doctorId).select('-password');
+      if (user && (user.role === 'doctor' || user.user_type === 'doctor')) {
+        // البحث عن ملف الطبيب المرتبط بهذا المستخدم
+        doctor = await Doctor.findOne({ userId: doctorId }).select('-password');
+        if (!doctor) {
+          // إذا لم يوجد ملف طبيب منفصل، استخدم بيانات المستخدم
+          doctor = user;
+        }
+      }
+    }
     
     if (!doctor) {
+      console.log('❌ لم يتم العثور على الطبيب:', doctorId);
       return res.status(404).json({ message: 'Doctor not found' });
     }
     
-    res.json({ doctor });
+    console.log('✅ تم العثور على الطبيب:', doctor.name);
+    
+    // إضافة URL كامل للصورة
+    const doctorWithImage = {
+      ...doctor.toObject(),
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null
+    };
+    
+    res.json({ doctor: doctorWithImage });
   } catch (error) {
     console.error('❌ خطأ في جلب بيانات الطبيب:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -704,9 +781,49 @@ app.get('/api/users', async (req, res) => {
 
 app.get('/api/admin/doctors', async (req, res) => {
   try {
-    const doctors = await Doctor.find({}).select('-password -idFront -idBack -syndicateFront -syndicateBack');
-    res.json(doctors);
+    const doctors = await Doctor.find({}).select('-password');
+    
+    // إضافة URL كامل للصور والوثائق
+    const doctorsWithImages = doctors.map(doctor => ({
+      ...doctor.toObject(),
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null,
+      idFront: doctor.idFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idFront}` : null,
+      idBack: doctor.idBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idBack}` : null,
+      syndicateFront: doctor.syndicateFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateFront}` : null,
+      syndicateBack: doctor.syndicateBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateBack}` : null
+    }));
+    
+    res.json(doctorsWithImages);
   } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Doctor Documents for Admin
+app.get('/api/admin/doctor/:doctorId/documents', async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    
+    const doctor = await Doctor.findById(doctorId).select('image idFront idBack syndicateFront syndicateBack name email');
+    
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    
+    res.json({ 
+      doctor: {
+        id: doctor._id,
+        name: doctor.name,
+        email: doctor.email,
+        image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null,
+        idFront: doctor.idFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idFront}` : null,
+        idBack: doctor.idBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idBack}` : null,
+        syndicateFront: doctor.syndicateFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateFront}` : null,
+        syndicateBack: doctor.syndicateBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateBack}` : null
+      }
+    });
+  } catch (error) {
+    console.error('❌ خطأ في جلب وثائق الطبيب:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
