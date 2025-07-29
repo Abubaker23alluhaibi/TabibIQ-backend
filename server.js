@@ -841,6 +841,9 @@ app.post('/api/appointments', requireAuth, async (req, res) => {
     const doctor = await Doctor.findById(doctorId);
     
     console.log('🔍 Patient found:', !!patient);
+    if (patient) {
+      console.log('🔍 Patient details:', { name: patient.name, email: patient.email, phone: patient.phone });
+    }
     console.log('🔍 Doctor found:', !!doctor);
     
     if (!patient || !doctor) {
@@ -925,10 +928,13 @@ app.get('/api/appointments/doctor/:doctorId', async (req, res) => {
       if (patient) {
         appointmentObj.patientId = {
           _id: patient._id,
-          name: patient.name,
+          name: patient.name || patient.first_name,
           email: patient.email,
           phone: patient.phone
         };
+        console.log('🔍 Patient data added:', appointmentObj.patientId);
+      } else {
+        console.log('❌ Patient not found for ID:', appointment.patientId);
       }
       
       return appointmentObj;
