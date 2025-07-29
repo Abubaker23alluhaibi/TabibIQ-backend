@@ -419,7 +419,7 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role || user.user_type,
-        avatar: user.avatar || user.image ? `https://tabib-iq-backend-production.up.railway.app${user.avatar || user.image}` : null,
+        avatar: user.avatar || user.image ? `https://api.tabib-iq.com${user.avatar || user.image}` : null,
         doctorProfile: doctorProfile
       }
     };
@@ -636,7 +636,7 @@ app.get('/api/doctors', async (req, res) => {
     // إضافة URL كامل للصور
     const doctorsWithImages = doctors.map(doctor => ({
       ...doctor.toObject(),
-      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null
+      image: doctor.image ? `https://api.tabib-iq.com${doctor.image}` : null
     }));
     
     res.json(doctorsWithImages);
@@ -658,7 +658,7 @@ app.get('/api/doctors/:id', async (req, res) => {
     // إضافة URL كامل للصورة
     const doctorWithImage = {
       ...doctor.toObject(),
-      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null
+      image: doctor.image ? `https://api.tabib-iq.com${doctor.image}` : null
     };
     
     res.json(doctorWithImage);
@@ -751,7 +751,7 @@ app.get('/api/doctor/:doctorId', async (req, res) => {
     // إضافة URL كامل للصورة
     const doctorWithImage = {
       ...doctor.toObject(),
-      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null
+      image: doctor.image ? `https://api.tabib-iq.com${doctor.image}` : null
     };
     
     res.json({ doctor: doctorWithImage });
@@ -813,11 +813,11 @@ app.get('/api/admin/doctors', async (req, res) => {
     // إضافة URL كامل للصور والوثائق
     const doctorsWithImages = doctors.map(doctor => ({
       ...doctor.toObject(),
-      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null,
-      idFront: doctor.idFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.idFront}` : null,
-      idBack: doctor.idBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.idBack}` : null,
-      syndicateFront: doctor.syndicateFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateFront}` : null,
-      syndicateBack: doctor.syndicateBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateBack}` : null
+      image: doctor.image ? `https://api.tabib-iq.com${doctor.image}` : null,
+      idFront: doctor.idFront ? `https://api.tabib-iq.com${doctor.idFront}` : null,
+      idBack: doctor.idBack ? `https://api.tabib-iq.com${doctor.idBack}` : null,
+      syndicateFront: doctor.syndicateFront ? `https://api.tabib-iq.com${doctor.syndicateFront}` : null,
+      syndicateBack: doctor.syndicateBack ? `https://api.tabib-iq.com${doctor.syndicateBack}` : null
     }));
     
     res.json(doctorsWithImages);
@@ -842,11 +842,11 @@ app.get('/api/admin/doctor/:doctorId/documents', async (req, res) => {
         id: doctor._id,
         name: doctor.name,
         email: doctor.email,
-        image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null,
-        idFront: doctor.idFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.idFront}` : null,
-        idBack: doctor.idBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.idBack}` : null,
-        syndicateFront: doctor.syndicateFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateFront}` : null,
-        syndicateBack: doctor.syndicateBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateBack}` : null
+        image: doctor.image ? `https://api.tabib-iq.com${doctor.image}` : null,
+        idFront: doctor.idFront ? `https://api.tabib-iq.com${doctor.idFront}` : null,
+        idBack: doctor.idBack ? `https://api.tabib-iq.com${doctor.idBack}` : null,
+        syndicateFront: doctor.syndicateFront ? `https://api.tabib-iq.com${doctor.syndicateFront}` : null,
+        syndicateBack: doctor.syndicateBack ? `https://api.tabib-iq.com${doctor.syndicateBack}` : null
       }
     });
   } catch (error) {
