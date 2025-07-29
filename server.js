@@ -1076,6 +1076,59 @@ app.get('/api/test-files', async (req, res) => {
   }
 });
 
+// Notification Routes
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const { doctorId } = req.query;
+    
+    if (!doctorId) {
+      return res.status(400).json({ message: 'Doctor ID required' });
+    }
+    
+    // For now, return empty array since notifications collection doesn't exist
+    // You can implement this later when you have a notifications schema
+    console.log('🔍 Fetching notifications for doctor:', doctorId);
+    res.json([]);
+  } catch (error) {
+    console.error('❌ Error fetching notifications:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const { userId, doctorId, title, message, type } = req.body;
+    
+    console.log('🔍 Creating notification:', { userId, doctorId, title, message, type });
+    
+    // For now, just return success since notifications collection doesn't exist
+    // You can implement this later when you have a notifications schema
+    res.status(201).json({ message: 'Notification created successfully' });
+  } catch (error) {
+    console.error('❌ Error creating notification:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.put('/api/notifications/mark-read', async (req, res) => {
+  try {
+    const { doctorId } = req.query;
+    
+    if (!doctorId) {
+      return res.status(400).json({ message: 'Doctor ID required' });
+    }
+    
+    console.log('🔍 Marking notifications as read for doctor:', doctorId);
+    
+    // For now, just return success since notifications collection doesn't exist
+    // You can implement this later when you have a notifications schema
+    res.json({ message: 'Notifications marked as read' });
+  } catch (error) {
+    console.error('❌ Error marking notifications as read:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ 
@@ -1093,7 +1146,10 @@ app.use('*', (req, res) => {
       'POST /api/appointments',
       'GET /api/appointments/patient/:patientId',
       'GET /api/appointments/doctor/:doctorId',
-      'PUT /api/appointments/:id/status'
+      'PUT /api/appointments/:id/status',
+      'GET /api/notifications',
+      'POST /api/notifications',
+      'PUT /api/notifications/mark-read'
     ]
   });
 });
