@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: tabib-iq-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        value: mongodb+srv://abubaker:Baker123@cluster0.kamrxrt.mongodb.net/tabibiq?retryWrites=true&w=majority&appName=Cluster0&authSource=admin&ssl=true
+      - key: JWT_SECRET
+        value: 226b5a2436faa710d61680d742aac5635445a33c746031eb83d1c4790fff5fd0947f2ff25473b3285bbc1355fdd9f54
+      - key: CORS_ORIGIN
+        value: https://tabib-iq.com,https://www.tabib-iq.com,https://tabib-iq-frontend.vercel.app,http://localhost:3000
+      - key: MAX_FILE_SIZE
+        value: 5242880
+      - key: UPLOAD_PATH
+        value: ./uploads
+    healthCheckPath: /api/health
+    autoDeploy: true 
