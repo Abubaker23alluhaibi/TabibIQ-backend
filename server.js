@@ -410,7 +410,7 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role || user.user_type,
-        avatar: user.avatar || user.image,
+        avatar: user.avatar || user.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${user.avatar || user.image}` : null,
         doctorProfile: doctorProfile
       }
     };
@@ -627,7 +627,7 @@ app.get('/api/doctors', async (req, res) => {
     // إضافة URL كامل للصور
     const doctorsWithImages = doctors.map(doctor => ({
       ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null
     }));
     
     res.json(doctorsWithImages);
@@ -649,7 +649,7 @@ app.get('/api/doctors/:id', async (req, res) => {
     // إضافة URL كامل للصورة
     const doctorWithImage = {
       ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null
     };
     
     res.json(doctorWithImage);
@@ -742,7 +742,7 @@ app.get('/api/doctor/:doctorId', async (req, res) => {
     // إضافة URL كامل للصورة
     const doctorWithImage = {
       ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null
+      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null
     };
     
     res.json({ doctor: doctorWithImage });
@@ -803,7 +803,7 @@ app.get('/api/admin/doctors', async (req, res) => {
     
     // إضافة URL كامل للصور والوثائق
     const doctorsWithImages = doctors.map(doctor => {
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app';
       
       console.log('🔍 معالجة طبيب:', doctor.name);
       console.log('🔍 البيانات الأصلية:', {
@@ -856,11 +856,11 @@ app.get('/api/admin/doctor/:doctorId/documents', async (req, res) => {
         id: doctor._id,
         name: doctor.name,
         email: doctor.email,
-        image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null,
-        idFront: doctor.idFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idFront}` : null,
-        idBack: doctor.idBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idBack}` : null,
-        syndicateFront: doctor.syndicateFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateFront}` : null,
-        syndicateBack: doctor.syndicateBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateBack}` : null
+        image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null,
+        idFront: doctor.idFront ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.idFront}` : null,
+        idBack: doctor.idBack ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.idBack}` : null,
+        syndicateFront: doctor.syndicateFront ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.syndicateFront}` : null,
+        syndicateBack: doctor.syndicateBack ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.syndicateBack}` : null
       }
     });
   } catch (error) {
