@@ -408,6 +408,7 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         name: user.name || user.first_name,
         email: user.email,
+        phone: user.phone,
         role: user.role || user.user_type,
         avatar: user.avatar || user.image,
         doctorProfile: doctorProfile
@@ -583,6 +584,110 @@ app.get('/api/doctors/:id', async (req, res) => {
     
     res.json(doctor);
   } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get User Profile Route
+app.get('/api/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ user });
+  } catch (error) {
+    console.error('❌ خطأ في جلب بيانات المستخدم:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// User Profile Update Route
+app.put('/api/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { first_name, name, email, phone, profileImage } = req.body;
+    
+    console.log('🔍 تحديث ملف المستخدم:', { userId, first_name, name, email, phone });
+    
+    const updateData = {};
+    if (first_name) updateData.first_name = first_name;
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (phone) updateData.phone = phone;
+    if (profileImage) updateData.avatar = profileImage;
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('✅ تم تحديث ملف المستخدم بنجاح:', user);
+    res.json({ user });
+  } catch (error) {
+    console.error('❌ خطأ في تحديث ملف المستخدم:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Doctor Profile Route
+app.get('/api/doctor/:doctorId', async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    
+    const doctor = await Doctor.findById(doctorId).select('-password');
+    
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    
+    res.json({ doctor });
+  } catch (error) {
+    console.error('❌ خطأ في جلب بيانات الطبيب:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Doctor Profile Update Route
+app.put('/api/doctor/:doctorId', async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { first_name, name, email, phone, profileImage, specialization, bio } = req.body;
+    
+    console.log('🔍 تحديث ملف الطبيب:', { doctorId, first_name, name, email, phone });
+    
+    const updateData = {};
+    if (first_name) updateData.first_name = first_name;
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (phone) updateData.phone = phone;
+    if (profileImage) updateData.image = profileImage;
+    if (specialization) updateData.specialization = specialization;
+    if (bio) updateData.bio = bio;
+    
+    const doctor = await Doctor.findByIdAndUpdate(
+      doctorId,
+      updateData,
+      { new: true }
+    ).select('-password');
+    
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    
+    console.log('✅ تم تحديث ملف الطبيب بنجاح:', doctor);
+    res.json({ doctor });
+  } catch (error) {
+    console.error('❌ خطأ في تحديث ملف الطبيب:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -1141,6 +1246,26 @@ app.get('/api/test-db', async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+// Upload Profile Image Route
+app.post('/api/upload-profile-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file provided' });
+    }
+    
+    const imageUrl = `/uploads/${req.file.filename}`;
+    console.log('✅ تم رفع الصورة الشخصية:', imageUrl);
+    
+    res.json({ 
+      message: 'Image uploaded successfully',
+      imageUrl: imageUrl
+    });
+  } catch (error) {
+    console.error('❌ خطأ في رفع الصورة:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
