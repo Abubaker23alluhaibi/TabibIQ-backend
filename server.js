@@ -4,12 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
-// Load environment variables from env.production if NODE_ENV is production
-if (process.env.NODE_ENV === 'production') {
-  require('dotenv').config({ path: './env.production' });
-} else {
-  require('dotenv').config();
-}
+require('dotenv').config();
 
 const app = express();
 
@@ -17,54 +12,23 @@ const app = express();
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:3000'];
-    console.log('🔍 CORS - Request origin:', origin);
-    console.log('🔍 CORS - Allowed origins:', allowedOrigins);
     
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('✅ CORS - Allowing request with no origin');
       return callback(null, true);
     }
     
     // Check if origin is in allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('✅ CORS - Origin allowed:', origin);
       return callback(null, true);
     }
     
-    // Additional check for tabib-iq.com domains
-    if (origin.includes('tabib-iq.com') || origin.includes('tabib-iq-frontend')) {
-      console.log('✅ CORS - Tabib IQ domain allowed:', origin);
-      return callback(null, true);
-    }
-    
-    console.log('❌ CORS - Origin not allowed:', origin);
     callback(new Error('Not allowed by CORS'));
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
-  optionsSuccessStatus: 200
+  credentials: true
 };
 
 app.use(cors(corsOptions));
-
-// Additional CORS headers for preflight requests
-app.use((req, res, next) => {
-  // Set CORS headers for all responses
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('🔍 CORS - Handling preflight request from:', req.headers.origin);
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -254,7 +218,7 @@ app.post('/api/check-auth', async (req, res) => {
   try {
     const { userId } = req.body;
     
-    console.log('🔍 Checking auth for userId:', userId);
+
     
     if (!userId) {
       return res.status(400).json({ 
@@ -265,12 +229,12 @@ app.post('/api/check-auth', async (req, res) => {
     
     // Check if user exists in users collection first
     let user = await User.findById(userId);
-    console.log('🔍 User found in users collection:', !!user);
+
     
     // If not found in users, check doctors collection
     if (!user) {
       const doctor = await Doctor.findById(userId);
-      console.log('🔍 Doctor found in doctors collection:', !!doctor);
+
       if (doctor) {
         user = {
           _id: doctor._id,
@@ -375,18 +339,18 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, loginType } = req.body;
     
-    console.log('🔍 محاولة تسجيل دخول:', { email, loginType });
+
     
     let user = null;
     
     // Find user in users collection first
     user = await User.findOne({ email });
-    console.log('🔍 تم البحث في users collection:', !!user);
+
     
     // If not found in users, check doctors collection
     if (!user) {
       const doctor = await Doctor.findOne({ email });
-      console.log('🔍 تم البحث في doctors collection:', !!doctor);
+
       if (doctor) {
         user = {
           _id: doctor._id,
@@ -403,7 +367,7 @@ app.post('/api/auth/login', async (req, res) => {
     // If not found in doctors, check admins collection
     if (!user) {
       const admin = await mongoose.connection.db.collection('admins').findOne({ email });
-      console.log('🔍 تم البحث في admins collection:', !!admin);
+
       if (admin) {
         user = {
           _id: admin._id,
@@ -417,23 +381,20 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     if (!user) {
-      console.log('❌ لم يتم العثور على المستخدم');
+  
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
     // Check password
-    console.log('🔍 فحص كلمة المرور');
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('🔍 تطابق كلمة المرور:', isMatch);
     
     if (!isMatch) {
-      console.log('❌ كلمة المرور غير صحيحة');
+
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
     // If loginType is specified, verify the user type matches
     if (loginType && user.role !== loginType && user.user_type !== loginType) {
-      console.log('❌ نوع الحساب لا يتطابق:', { expected: loginType, actual: user.role || user.user_type });
       return res.status(400).json({ message: `Account is registered as ${user.role || user.user_type}, not ${loginType}` });
     }
     
@@ -447,7 +408,7 @@ app.post('/api/auth/login', async (req, res) => {
         // If user is from users collection, find doctor profile by userId
         doctorProfile = await Doctor.findOne({ userId: user._id });
       }
-      console.log('🔍 تم البحث عن ملف الطبيب:', !!doctorProfile);
+
     }
     
     const responseData = {
@@ -458,15 +419,15 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role || user.user_type,
-        avatar: user.avatar || user.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${user.avatar || user.image}` : null,
+        avatar: user.avatar || user.image ? `https://tabib-iq-backend-production.up.railway.app${user.avatar || user.image}` : null,
         doctorProfile: doctorProfile
       }
     };
     
-    console.log('✅ تم تسجيل الدخول بنجاح:', responseData);
+
     res.json(responseData);
   } catch (error) {
-    console.error('❌ خطأ في تسجيل الدخول:', error);
+
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -675,7 +636,7 @@ app.get('/api/doctors', async (req, res) => {
     // إضافة URL كامل للصور
     const doctorsWithImages = doctors.map(doctor => ({
       ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null
+      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null
     }));
     
     res.json(doctorsWithImages);
@@ -697,7 +658,7 @@ app.get('/api/doctors/:id', async (req, res) => {
     // إضافة URL كامل للصورة
     const doctorWithImage = {
       ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null
+      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null
     };
     
     res.json(doctorWithImage);
@@ -730,7 +691,7 @@ app.put('/api/user/:userId', async (req, res) => {
     const { userId } = req.params;
     const { first_name, name, email, phone, profileImage } = req.body;
     
-    console.log('🔍 تحديث ملف المستخدم:', { userId, first_name, name, email, phone });
+
     
     const updateData = {};
     if (first_name) updateData.first_name = first_name;
@@ -749,10 +710,10 @@ app.put('/api/user/:userId', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    console.log('✅ تم تحديث ملف المستخدم بنجاح:', user);
+
     res.json({ user });
   } catch (error) {
-    console.error('❌ خطأ في تحديث ملف المستخدم:', error);
+
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -762,7 +723,7 @@ app.get('/api/doctor/:doctorId', async (req, res) => {
   try {
     const { doctorId } = req.params;
     
-    console.log('🔍 جلب بيانات الطبيب:', doctorId);
+
     
     // البحث في collection الأطباء أولاً
     let doctor = await Doctor.findById(doctorId).select('-password');
@@ -790,7 +751,7 @@ app.get('/api/doctor/:doctorId', async (req, res) => {
     // إضافة URL كامل للصورة
     const doctorWithImage = {
       ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null
+      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null
     };
     
     res.json({ doctor: doctorWithImage });
@@ -850,37 +811,14 @@ app.get('/api/admin/doctors', async (req, res) => {
     const doctors = await Doctor.find({}).select('-password');
     
     // إضافة URL كامل للصور والوثائق
-    const doctorsWithImages = doctors.map(doctor => {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app';
-      
-      console.log('🔍 معالجة طبيب:', doctor.name);
-      console.log('🔍 البيانات الأصلية:', {
-        image: doctor.image,
-        idFront: doctor.idFront,
-        idBack: doctor.idBack,
-        syndicateFront: doctor.syndicateFront,
-        syndicateBack: doctor.syndicateBack
-      });
-      
-      const processedDoctor = {
-        ...doctor.toObject(),
-        image: doctor.image ? `${baseUrl}${doctor.image}` : null,
-        idFront: doctor.idFront ? `${baseUrl}${doctor.idFront}` : null,
-        idBack: doctor.idBack ? `${baseUrl}${doctor.idBack}` : null,
-        syndicateFront: doctor.syndicateFront ? `${baseUrl}${doctor.syndicateFront}` : null,
-        syndicateBack: doctor.syndicateBack ? `${baseUrl}${doctor.syndicateBack}` : null
-      };
-      
-      console.log('🔗 URLs النهائية:', {
-        image: processedDoctor.image,
-        idFront: processedDoctor.idFront,
-        idBack: processedDoctor.idBack,
-        syndicateFront: processedDoctor.syndicateFront,
-        syndicateBack: processedDoctor.syndicateBack
-      });
-      
-      return processedDoctor;
-    });
+    const doctorsWithImages = doctors.map(doctor => ({
+      ...doctor.toObject(),
+      image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null,
+      idFront: doctor.idFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.idFront}` : null,
+      idBack: doctor.idBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.idBack}` : null,
+      syndicateFront: doctor.syndicateFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateFront}` : null,
+      syndicateBack: doctor.syndicateBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateBack}` : null
+    }));
     
     res.json(doctorsWithImages);
   } catch (error) {
@@ -904,11 +842,11 @@ app.get('/api/admin/doctor/:doctorId/documents', async (req, res) => {
         id: doctor._id,
         name: doctor.name,
         email: doctor.email,
-        image: doctor.image ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.image}` : null,
-        idFront: doctor.idFront ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.idFront}` : null,
-        idBack: doctor.idBack ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.idBack}` : null,
-        syndicateFront: doctor.syndicateFront ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.syndicateFront}` : null,
-        syndicateBack: doctor.syndicateBack ? `${process.env.REACT_APP_API_URL || 'https://tabib-iq-backend-production.up.railway.app'}${doctor.syndicateBack}` : null
+        image: doctor.image ? `https://tabib-iq-backend-production.up.railway.app${doctor.image}` : null,
+        idFront: doctor.idFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.idFront}` : null,
+        idBack: doctor.idBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.idBack}` : null,
+        syndicateFront: doctor.syndicateFront ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateFront}` : null,
+        syndicateBack: doctor.syndicateBack ? `https://tabib-iq-backend-production.up.railway.app${doctor.syndicateBack}` : null
       }
     });
   } catch (error) {
