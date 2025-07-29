@@ -12,18 +12,55 @@ const app = express();
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:3000'];
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    console.log('🔍 CORS - Request origin:', origin);
+    console.log('🔍 CORS - Allowed origins:', allowedOrigins);
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('✅ CORS - Allowing request with no origin');
+      return callback(null, true);
     }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('✅ CORS - Origin allowed:', origin);
+      return callback(null, true);
+    }
+    
+    // Additional check for tabib-iq.com domains
+    if (origin.includes('tabib-iq.com') || origin.includes('tabib-iq-frontend')) {
+      console.log('✅ CORS - Tabib IQ domain allowed:', origin);
+      return callback(null, true);
+    }
+    
+    console.log('❌ CORS - Origin not allowed:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
 app.use(cors(corsOptions));
+
+// Additional CORS headers for preflight requests
+app.use((req, res, next) => {
+  // Set CORS headers for all responses
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('🔍 CORS - Handling preflight request');
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -205,6 +242,15 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Test endpoint working!', timestamp: new Date().toISOString() });
 });
 
+// Test CORS endpoint
+app.get('/api/test-cors', (req, res) => {
+  res.json({ 
+    message: 'CORS test successful',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Check user authentication status
 app.post('/api/check-auth', async (req, res) => {
   try {
@@ -283,6 +329,14 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// CORS preflight handler for all routes
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.sendStatus(200);
+});
+
 // User Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -318,6 +372,15 @@ app.post('/api/auth/register', async (req, res) => {
         role: user.role
       }
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Check auth endpoint (for CORS testing)
+app.post('/api/check-auth', async (req, res) => {
+  try {
+    res.json({ message: 'Auth check endpoint working' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
