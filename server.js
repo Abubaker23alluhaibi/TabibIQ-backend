@@ -8,38 +8,28 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS configuration
+// Enable CORS for all routes - Place this BEFORE any other middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    console.log('🔍 CORS - Early preflight handler for:', req.path);
+    res.status(200).end();
+    return;
+  }
+  next();
+});
+
+// CORS configuration - Simplified and more permissive
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:3000'];
-    console.log('🔍 CORS - Request origin:', origin);
-    console.log('🔍 CORS - Allowed origins:', allowedOrigins);
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('✅ CORS - Allowing request with no origin');
-      return callback(null, true);
-    }
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('✅ CORS - Origin allowed:', origin);
-      return callback(null, true);
-    }
-    
-    // Additional check for tabib-iq.com domains
-    if (origin.includes('tabib-iq.com') || origin.includes('tabib-iq-frontend')) {
-      console.log('✅ CORS - Tabib IQ domain allowed:', origin);
-      return callback(null, true);
-    }
-    
-    console.log('❌ CORS - Origin not allowed:', origin);
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins for now
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
@@ -51,14 +41,16 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('🔍 CORS - Handling preflight request');
-    res.sendStatus(200);
-  } else {
-    next();
+    console.log('🔍 CORS - Handling preflight request from:', req.headers.origin);
+    res.status(200).end();
+    return;
   }
+  
+  next();
 });
 
 app.use(express.json({ limit: '10mb' }));
@@ -244,8 +236,22 @@ app.get('/test', (req, res) => {
 
 // Test CORS endpoint
 app.get('/api/test-cors', (req, res) => {
+  console.log('🔍 Test CORS endpoint called from:', req.headers.origin);
+  res.header('Access-Control-Allow-Origin', '*');
   res.json({ 
     message: 'CORS test successful',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString(),
+    cors: 'enabled'
+  });
+});
+
+// Simple CORS test endpoint
+app.get('/cors-test', (req, res) => {
+  console.log('🔍 Simple CORS test called from:', req.headers.origin);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.json({ 
+    message: 'Simple CORS test successful',
     origin: req.headers.origin,
     timestamp: new Date().toISOString()
   });
@@ -331,15 +337,21 @@ app.get('/api/health', async (req, res) => {
 
 // CORS preflight handler for all routes
 app.options('*', (req, res) => {
+  console.log('🔍 CORS - Global preflight handler for:', req.path);
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.sendStatus(200);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(200).end();
 });
 
 // User Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
+    console.log('🔍 Register attempt from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    
     const { name, email, password, phone, role } = req.body;
     
     // Check if user already exists
@@ -380,7 +392,24 @@ app.post('/api/auth/register', async (req, res) => {
 // Check auth endpoint (for CORS testing)
 app.post('/api/check-auth', async (req, res) => {
   try {
+    console.log('🔍 Check auth endpoint called from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
     res.json({ message: 'Auth check endpoint working' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Direct login test endpoint
+app.post('/api/test-login', async (req, res) => {
+  try {
+    console.log('🔍 Test login endpoint called from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.json({ 
+      message: 'Test login endpoint working',
+      received: req.body,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -388,6 +417,9 @@ app.post('/api/check-auth', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    console.log('🔍 Login attempt from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    
     const { email, password, loginType } = req.body;
     
     console.log('🔍 محاولة تسجيل دخول:', { email, loginType });
@@ -527,6 +559,9 @@ app.post('/api/auth/register-doctor', upload.fields([
   { name: 'syndicateBack', maxCount: 1 }
 ]), async (req, res) => {
   try {
+    console.log('🔍 Doctor register attempt from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    
     const { name, email, password, phone, specialization, experience, experienceYears, bio, consultationFee, availableDays, availableHours, workTimes } = req.body;
     
     // Check if user already exists
@@ -676,7 +711,10 @@ app.post('/api/doctors', upload.fields([
 
 app.get('/api/doctors', async (req, res) => {
   try {
-    const doctors = await Doctor.find({ 
+    console.log('🔍 Get doctors request from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    
+    const doctors = await Doctor.find({
       $or: [
         { status: 'approved' },
         { isVerified: true }
@@ -1146,6 +1184,9 @@ const requireAuth = async (req, res, next) => {
 // Appointment Routes
 app.post('/api/appointments', requireAuth, async (req, res) => {
   try {
+    console.log('🔍 Create appointment request from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    
     const { patientId, doctorId, date, time, type, notes, symptoms } = req.body;
     
     console.log('🔍 Booking appointment:', { patientId, doctorId, date, time });
@@ -1542,6 +1583,9 @@ app.get('/api/notifications', async (req, res) => {
 
 app.post('/api/notifications', async (req, res) => {
   try {
+    console.log('🔍 Create notification request from:', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    
     const { userId, doctorId, title, message, type } = req.body;
     
     console.log('🔍 Creating notification:', { userId, doctorId, title, message, type });
@@ -1576,8 +1620,11 @@ app.put('/api/notifications/mark-read', async (req, res) => {
 
 // 404 handler
 app.use('*', (req, res) => {
+  console.log('🔍 404 - Route not found:', req.path, 'from:', req.headers.origin);
+  res.header('Access-Control-Allow-Origin', '*');
   res.status(404).json({ 
     message: 'Route not found',
+    path: req.path,
     availableRoutes: [
       'GET /',
       'GET /api/health',
