@@ -167,7 +167,7 @@ tabib-iq-backend/
 
 ## 🚀 Deployment
 
-### Railway (Recommended)
+### Backend (Railway)
 1. Connect your GitHub repository to Railway
 2. Set environment variables in Railway dashboard:
    ```env
@@ -175,27 +175,24 @@ tabib-iq-backend/
    PORT=5000
    MONGO_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret
-   CORS_ORIGIN=https://tabib-iq.com,https://www.tabib-iq.com
+   CORS_ORIGIN=https://tabib-iq-frontend.vercel.app
    MAX_FILE_SIZE=5242880
    UPLOAD_PATH=./uploads
    ```
 3. Deploy automatically
 
-### Render
-1. Connect your GitHub repository to Render
-2. Set environment variables in Render dashboard
+### Frontend (Vercel)
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard:
+   ```env
+   REACT_APP_API_URL=https://your-railway-backend-url.railway.app/api
+   ```
 3. Deploy automatically
 
-### Vercel
+### Backup (Vercel for Backend)
 1. Install Vercel CLI: `npm i -g vercel`
 2. Run: `vercel`
 3. Set environment variables in Vercel dashboard
-
-### Heroku
-1. Install Heroku CLI
-2. Run: `heroku create`
-3. Set environment variables: `heroku config:set KEY=value`
-4. Deploy: `git push heroku main`
 
 ## 🔍 Health Check
 
