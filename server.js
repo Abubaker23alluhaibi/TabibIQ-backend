@@ -895,13 +895,40 @@ app.post('/api/appointments', requireAuth, async (req, res) => {
 
 app.get('/api/appointments/patient/:patientId', async (req, res) => {
   try {
-    const appointments = await Appointment.find({ patientId: req.params.patientId })
-      .populate('doctorId')
-      .populate('patientId', 'name email')
-      .sort({ date: 1 });
+    console.log('🔍 Fetching appointments for patient:', req.params.patientId);
+    
+    // Search by both patientId and userId to handle different data structures
+    const appointments = await Appointment.find({
+      $or: [
+        { patientId: req.params.patientId },
+        { userId: req.params.patientId }
+      ]
+    })
+    .populate('doctorId')
+    .populate('patientId', 'name email')
+    .sort({ date: 1 });
     
     console.log('🔍 Found appointments for patient:', req.params.patientId, 'Count:', appointments.length);
-    res.json(appointments);
+    
+    // Manually populate doctor data for better display
+    const populatedAppointments = await Promise.all(appointments.map(async (appointment) => {
+      const appointmentObj = appointment.toObject();
+      
+      // If doctorId is populated, use it; otherwise try to find doctor
+      if (appointmentObj.doctorId && typeof appointmentObj.doctorId === 'object') {
+        appointmentObj.doctorName = appointmentObj.doctorId.name;
+      } else {
+        // Try to find doctor by ID
+        const doctor = await Doctor.findById(appointment.doctorId);
+        if (doctor) {
+          appointmentObj.doctorName = doctor.name;
+        }
+      }
+      
+      return appointmentObj;
+    }));
+    
+    res.json(populatedAppointments);
   } catch (error) {
     console.error('❌ Error fetching patient appointments:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
