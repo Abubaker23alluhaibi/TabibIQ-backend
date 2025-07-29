@@ -182,6 +182,7 @@ app.get('/', (req, res) => {
       test: '/api/test-db',
       auth: {
         register: '/api/auth/register',
+        registerDoctor: '/api/auth/register-doctor',
         login: '/api/auth/login'
       },
       doctors: {
@@ -308,32 +309,17 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, loginType } = req.body;
     
-    console.log('🔍 محاولة تسجيل دخول:', { email });
+    console.log('🔍 محاولة تسجيل دخول:', { email, loginType });
     
-    // Find user in users collection
-    let user = await User.findOne({ email });
+    let user = null;
+    
+    // Find user in users collection first
+    user = await User.findOne({ email });
     console.log('🔍 تم البحث في users collection:', !!user);
     
-    // If not found in users, check doctors collection
-    if (!user) {
-      const doctor = await Doctor.findOne({ email });
-      console.log('🔍 تم البحث في doctors collection:', !!doctor);
-      if (doctor) {
-        user = {
-          _id: doctor._id,
-          name: doctor.name,
-          email: doctor.email,
-          password: doctor.password,
-          role: 'doctor',
-          user_type: 'doctor',
-          avatar: doctor.image
-        };
-      }
-    }
-    
-    // If not found in doctors, check admins collection
+    // If not found in users, check admins collection
     if (!user) {
       const admin = await mongoose.connection.db.collection('admins').findOne({ email });
       console.log('🔍 تم البحث في admins collection:', !!admin);
@@ -364,6 +350,19 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
+    // If loginType is specified, verify the user type matches
+    if (loginType && user.role !== loginType && user.user_type !== loginType) {
+      console.log('❌ نوع الحساب لا يتطابق:', { expected: loginType, actual: user.role || user.user_type });
+      return res.status(400).json({ message: `Account is registered as ${user.role || user.user_type}, not ${loginType}` });
+    }
+    
+    // For doctors, get additional profile information
+    let doctorProfile = null;
+    if (user.role === 'doctor' || user.user_type === 'doctor') {
+      doctorProfile = await Doctor.findOne({ userId: user._id });
+      console.log('🔍 تم البحث عن ملف الطبيب:', !!doctorProfile);
+    }
+    
     const responseData = {
       message: 'Login successful',
       user: {
@@ -371,7 +370,8 @@ app.post('/api/auth/login', async (req, res) => {
         name: user.name || user.first_name,
         email: user.email,
         role: user.role || user.user_type,
-        avatar: user.avatar || user.image
+        avatar: user.avatar || user.image,
+        doctorProfile: doctorProfile
       }
     };
     
@@ -415,7 +415,66 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Doctor Routes
+// Doctor Registration Route
+app.post('/api/auth/register-doctor', upload.single('license'), async (req, res) => {
+  try {
+    const { name, email, password, phone, specialization, experience, bio, consultationFee, availableDays, availableHours } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+    
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Create user account first
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      role: 'doctor',
+      user_type: 'doctor'
+    });
+    
+    await user.save();
+    
+    // Create doctor profile
+    const doctor = new Doctor({
+      userId: user._id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      specialization,
+      experience,
+      bio,
+      consultationFee,
+      availableDays: JSON.parse(availableDays || '[]'),
+      availableHours: JSON.parse(availableHours || '{}'),
+      license: req.file ? req.file.filename : req.body.license
+    });
+    
+    await doctor.save();
+    
+    res.status(201).json({
+      message: 'Doctor registered successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      doctor: doctor
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Doctor Profile Routes
 app.post('/api/doctors', upload.single('license'), async (req, res) => {
   try {
     const { userId, specialization, experience, bio, consultationFee, availableDays, availableHours } = req.body;
@@ -935,6 +994,7 @@ app.use('*', (req, res) => {
       'GET /api/health',
       'GET /api/test-db',
       'POST /api/auth/register',
+      'POST /api/auth/register-doctor',
       'POST /api/auth/login',
       'GET /api/doctors',
       'POST /api/doctors',
