@@ -910,8 +910,19 @@ app.get('/api/appointments/patient/:patientId', async (req, res) => {
 
 app.get('/api/appointments/doctor/:doctorId', async (req, res) => {
   try {
+    console.log('🔍 Fetching appointments for doctor:', req.params.doctorId);
+    
     const appointments = await Appointment.find({ doctorId: req.params.doctorId })
       .sort({ date: 1 });
+    
+    console.log('🔍 Raw appointments found:', appointments.length);
+    console.log('🔍 Raw appointments data:', appointments.map(apt => ({
+      _id: apt._id,
+      userId: apt.userId,
+      patientId: apt.patientId,
+      date: apt.date,
+      time: apt.time
+    })));
     
     // Manually populate patient data from both users and doctors collections
     const populatedAppointments = await Promise.all(appointments.map(async (appointment) => {
