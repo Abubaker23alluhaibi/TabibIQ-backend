@@ -496,6 +496,14 @@ app.post('/api/auth/register-doctor', upload.fields([
     const syndicateFrontFile = files.syndicateFront ? files.syndicateFront[0] : null;
     const syndicateBackFile = files.syndicateBack ? files.syndicateBack[0] : null;
 
+    console.log('📁 الملفات المرفوعة:', {
+      imageFile: imageFile?.filename,
+      idFrontFile: idFrontFile?.filename,
+      idBackFile: idBackFile?.filename,
+      syndicateFrontFile: syndicateFrontFile?.filename,
+      syndicateBackFile: syndicateBackFile?.filename
+    });
+
     // Create doctor profile
     const doctor = new Doctor({
       userId: user._id,
@@ -518,6 +526,16 @@ app.post('/api/auth/register-doctor', upload.fields([
     });
     
     await doctor.save();
+    
+    console.log('✅ تم حفظ الطبيب بنجاح:', {
+      id: doctor._id,
+      name: doctor.name,
+      image: doctor.image,
+      idFront: doctor.idFront,
+      idBack: doctor.idBack,
+      syndicateFront: doctor.syndicateFront,
+      syndicateBack: doctor.syndicateBack
+    });
     
     res.status(201).json({
       message: 'Doctor registered successfully',
@@ -784,14 +802,37 @@ app.get('/api/admin/doctors', async (req, res) => {
     const doctors = await Doctor.find({}).select('-password');
     
     // إضافة URL كامل للصور والوثائق
-    const doctorsWithImages = doctors.map(doctor => ({
-      ...doctor.toObject(),
-      image: doctor.image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.image}` : null,
-      idFront: doctor.idFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idFront}` : null,
-      idBack: doctor.idBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.idBack}` : null,
-      syndicateFront: doctor.syndicateFront ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateFront}` : null,
-      syndicateBack: doctor.syndicateBack ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${doctor.syndicateBack}` : null
-    }));
+    const doctorsWithImages = doctors.map(doctor => {
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      
+      console.log('🔍 معالجة طبيب:', doctor.name);
+      console.log('🔍 البيانات الأصلية:', {
+        image: doctor.image,
+        idFront: doctor.idFront,
+        idBack: doctor.idBack,
+        syndicateFront: doctor.syndicateFront,
+        syndicateBack: doctor.syndicateBack
+      });
+      
+      const processedDoctor = {
+        ...doctor.toObject(),
+        image: doctor.image ? `${baseUrl}${doctor.image}` : null,
+        idFront: doctor.idFront ? `${baseUrl}${doctor.idFront}` : null,
+        idBack: doctor.idBack ? `${baseUrl}${doctor.idBack}` : null,
+        syndicateFront: doctor.syndicateFront ? `${baseUrl}${doctor.syndicateFront}` : null,
+        syndicateBack: doctor.syndicateBack ? `${baseUrl}${doctor.syndicateBack}` : null
+      };
+      
+      console.log('🔗 URLs النهائية:', {
+        image: processedDoctor.image,
+        idFront: processedDoctor.idFront,
+        idBack: processedDoctor.idBack,
+        syndicateFront: processedDoctor.syndicateFront,
+        syndicateBack: processedDoctor.syndicateBack
+      });
+      
+      return processedDoctor;
+    });
     
     res.json(doctorsWithImages);
   } catch (error) {
