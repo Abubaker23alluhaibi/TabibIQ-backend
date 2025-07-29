@@ -213,31 +213,47 @@ app.post('/api/check-auth', async (req, res) => {
     console.log('🔍 Checking auth for userId:', userId);
     
     if (!userId) {
-      return res.status(401).json({ 
+      return res.status(400).json({ 
         authenticated: false, 
-        message: 'No user ID provided' 
+        message: 'User ID required' 
       });
     }
     
-    const user = await User.findById(userId);
-    console.log('🔍 User found in database:', !!user);
+    // Check if user exists in users collection first
+    let user = await User.findById(userId);
+    console.log('🔍 User found in users collection:', !!user);
     
+    // If not found in users, check doctors collection
     if (!user) {
-      return res.status(401).json({ 
+      const doctor = await Doctor.findById(userId);
+      console.log('🔍 Doctor found in doctors collection:', !!doctor);
+      if (doctor) {
+        user = {
+          _id: doctor._id,
+          name: doctor.name,
+          email: doctor.email,
+          role: 'doctor',
+          user_type: 'doctor'
+        };
+      }
+    }
+    
+    if (user) {
+      res.json({ 
+        authenticated: true, 
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          user_type: user.user_type || user.role
+        }
+      });
+    } else {
+      res.json({ 
         authenticated: false, 
         message: 'User not found in database' 
       });
     }
-    
-    res.json({ 
-      authenticated: true, 
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        user_type: user.user_type || user.role
-      }
-    });
   } catch (error) {
     console.error('❌ check-auth error:', error);
     res.status(500).json({ 
@@ -883,11 +899,43 @@ app.get('/api/appointments/patient/:patientId', async (req, res) => {
 app.get('/api/appointments/doctor/:doctorId', async (req, res) => {
   try {
     const appointments = await Appointment.find({ doctorId: req.params.doctorId })
-      .populate('patientId', 'name email phone')
       .sort({ date: 1 });
     
-    console.log('🔍 Found appointments for doctor:', req.params.doctorId, 'Count:', appointments.length);
-    res.json(appointments);
+    // Manually populate patient data from both users and doctors collections
+    const populatedAppointments = await Promise.all(appointments.map(async (appointment) => {
+      const appointmentObj = appointment.toObject();
+      
+      // Try to find patient in users collection first
+      let patient = await User.findById(appointment.patientId);
+      
+      // If not found in users, try doctors collection
+      if (!patient) {
+        const doctorPatient = await Doctor.findById(appointment.patientId);
+        if (doctorPatient) {
+          patient = {
+            _id: doctorPatient._id,
+            name: doctorPatient.name,
+            email: doctorPatient.email,
+            phone: doctorPatient.phone
+          };
+        }
+      }
+      
+      // Add patient data to appointment
+      if (patient) {
+        appointmentObj.patientId = {
+          _id: patient._id,
+          name: patient.name,
+          email: patient.email,
+          phone: patient.phone
+        };
+      }
+      
+      return appointmentObj;
+    }));
+    
+    console.log('🔍 Found appointments for doctor:', req.params.doctorId, 'Count:', populatedAppointments.length);
+    res.json(populatedAppointments);
   } catch (error) {
     console.error('❌ Error fetching doctor appointments:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -916,42 +964,7 @@ const requireUserExists = async (req, res, next) => {
   }
 };
 
-// Check if user exists in database
-app.post('/api/check-auth', async (req, res) => {
-  try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ message: 'User ID required' });
-    }
-    
-    // Check if user exists in users collection first
-    let user = await User.findById(userId);
-    
-    // If not found in users, check doctors collection
-    if (!user) {
-      const doctor = await Doctor.findById(userId);
-      if (doctor) {
-        user = {
-          _id: doctor._id,
-          name: doctor.name,
-          email: doctor.email,
-          role: 'doctor',
-          user_type: 'doctor'
-        };
-      }
-    }
-    
-    if (user) {
-      res.json({ authenticated: true, user });
-    } else {
-      res.json({ authenticated: false, message: 'User not found' });
-    }
-  } catch (error) {
-    console.error('❌ Error checking auth:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
+
 
 // Get booked appointments for a specific doctor on a specific date
 app.get('/api/appointments/:doctorId/:date', requireUserExists, async (req, res) => {
