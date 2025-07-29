@@ -826,14 +826,22 @@ app.post('/api/appointments', requireAuth, async (req, res) => {
     
     // Check if patient exists (in users or doctors collection)
     let patient = await User.findById(patientId);
+    console.log('🔍 Patient found in users collection:', !!patient);
+    if (patient) {
+      console.log('🔍 Patient details from users:', { name: patient.name, email: patient.email, phone: patient.phone });
+    }
+    
     if (!patient) {
       const doctorPatient = await Doctor.findById(patientId);
+      console.log('🔍 Patient found in doctors collection:', !!doctorPatient);
       if (doctorPatient) {
         patient = {
           _id: doctorPatient._id,
           name: doctorPatient.name,
-          email: doctorPatient.email
+          email: doctorPatient.email,
+          phone: doctorPatient.phone
         };
+        console.log('🔍 Patient details from doctors:', patient);
       }
     }
     
@@ -864,6 +872,7 @@ app.post('/api/appointments', requireAuth, async (req, res) => {
     }
     
     const appointment = new Appointment({
+      userId: patientId,  // إضافة userId
       patientId,
       doctorId,
       date,
@@ -907,13 +916,16 @@ app.get('/api/appointments/doctor/:doctorId', async (req, res) => {
     // Manually populate patient data from both users and doctors collections
     const populatedAppointments = await Promise.all(appointments.map(async (appointment) => {
       const appointmentObj = appointment.toObject();
+      console.log('🔍 Processing appointment:', { patientId: appointment.patientId, date: appointment.date, time: appointment.time });
       
-      // Try to find patient in users collection first
-      let patient = await User.findById(appointment.patientId);
+      // Try to find patient using userId first (more reliable)
+      let patient = await User.findById(appointment.userId);
+      console.log('🔍 Patient found in users collection using userId:', !!patient);
       
       // If not found in users, try doctors collection
       if (!patient) {
-        const doctorPatient = await Doctor.findById(appointment.patientId);
+        const doctorPatient = await Doctor.findById(appointment.userId);
+        console.log('🔍 Patient found in doctors collection using userId:', !!doctorPatient);
         if (doctorPatient) {
           patient = {
             _id: doctorPatient._id,
@@ -921,6 +933,29 @@ app.get('/api/appointments/doctor/:doctorId', async (req, res) => {
             email: doctorPatient.email,
             phone: doctorPatient.phone
           };
+          console.log('🔍 Patient details from doctors:', patient);
+        }
+      } else {
+        console.log('🔍 Patient details from users:', { name: patient.name, email: patient.email, phone: patient.phone });
+      }
+      
+      // If still not found, try patientId as fallback
+      if (!patient) {
+        patient = await User.findById(appointment.patientId);
+        console.log('🔍 Patient found in users collection using patientId (fallback):', !!patient);
+        
+        if (!patient) {
+          const doctorPatient = await Doctor.findById(appointment.patientId);
+          console.log('🔍 Patient found in doctors collection using patientId (fallback):', !!doctorPatient);
+          if (doctorPatient) {
+            patient = {
+              _id: doctorPatient._id,
+              name: doctorPatient.name,
+              email: doctorPatient.email,
+              phone: doctorPatient.phone
+            };
+            console.log('🔍 Patient details from doctors (fallback):', patient);
+          }
         }
       }
       
@@ -932,9 +967,16 @@ app.get('/api/appointments/doctor/:doctorId', async (req, res) => {
           email: patient.email,
           phone: patient.phone
         };
-        console.log('🔍 Patient data added:', appointmentObj.patientId);
+        console.log('🔍 Patient data added to appointment:', appointmentObj.patientId);
       } else {
         console.log('❌ Patient not found for ID:', appointment.patientId);
+        // Set default patient data if not found
+        appointmentObj.patientId = {
+          _id: appointment.patientId,
+          name: 'مريض غير معروف',
+          email: 'غير متوفر',
+          phone: 'غير متوفر'
+        };
       }
       
       return appointmentObj;
