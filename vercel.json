@@ -11,5 +11,13 @@
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ]
+  ],
+  "env": {
+    "REACT_APP_API_URL": "https://tabib-iq-backend-production.up.railway.app/api"
+  },
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 } 

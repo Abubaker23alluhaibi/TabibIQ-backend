@@ -1,20 +1,19 @@
-# Tabib IQ Backend API
+# Tabib IQ Frontend
 
-Backend API for Tabib IQ medical consultation platform built with Node.js, Express, and MongoDB.
+Frontend application for Tabib IQ medical consultation platform built with React.
 
 ## 🚀 Features
 
-- **User Authentication**: Register, login, and profile management
-- **Doctor Management**: Doctor registration, profiles, and verification
-- **Appointment System**: Create, manage, and track appointments
-- **File Upload**: Support for images and documents
-- **Health Check**: API health monitoring endpoint
-- **CORS Support**: Cross-origin resource sharing configuration
+- **Multi-language Support**: Arabic, English, and Kurdish
+- **Responsive Design**: Works on all devices
+- **User Authentication**: Login, registration, and profile management
+- **Doctor Management**: Browse doctors, book appointments
+- **Admin Dashboard**: Complete admin panel for managing users and doctors
+- **Modern UI**: Beautiful and intuitive user interface
 
 ## 📋 Prerequisites
 
 - Node.js (v14 or higher)
-- MongoDB Atlas account
 - npm or yarn
 
 ## 🛠️ Installation
@@ -22,219 +21,128 @@ Backend API for Tabib IQ medical consultation platform built with Node.js, Expre
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd tabib-iq-backend
+   cd tabib-iq-frontend
    ```
 
 2. **Install dependencies**
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. **Environment Setup**
-   - Copy `env.example` to `.env`
-   - Update the following variables:
-     ```env
-     PORT=5000
-     NODE_ENV=development
-     MONGO_URI=your_mongodb_connection_string
-     JWT_SECRET=your_jwt_secret
-     CORS_ORIGIN=http://localhost:3000
-     MAX_FILE_SIZE=5242880
-     UPLOAD_PATH=./uploads
-     ```
-
-4. **Create uploads directory**
-```bash
-   mkdir uploads
-```
+   Create a `.env` file in the root directory:
+   ```env
+   REACT_APP_API_URL=https://tabib-iq-backend-production.up.railway.app/api
+   ```
 
 ## 🚀 Running the Application
 
 ### Development
 ```bash
-npm run dev
-```
-
-### Production
-```bash
 npm start
 ```
 
-The server will start on `http://localhost:5000`
-
-## 📚 API Endpoints
-
-### Root
-- `GET /` - API information and available endpoints
-
-### Health Check
-- `GET /api/health` - Check API health status
-- `GET /api/test-db` - Test database connection
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-
-### Doctors
-- `POST /api/doctors` - Create doctor profile
-- `GET /api/doctors` - Get all verified doctors
-- `GET /api/doctors/:id` - Get specific doctor
-
-### Appointments
-- `POST /api/appointments` - Create appointment
-- `GET /api/appointments/patient/:patientId` - Get patient appointments
-- `GET /api/appointments/doctor/:doctorId` - Get doctor appointments
-- `PUT /api/appointments/:id/status` - Update appointment status
-
-## 🗄️ Database Schema
-
-### User Schema
-```javascript
-{
-  name: String,
-  email: String (unique),
-  password: String (hashed),
-  phone: String,
-  role: String (patient/doctor/admin),
-  avatar: String,
-  createdAt: Date,
-  updatedAt: Date
-}
+### Production Build
+```bash
+npm run build
 ```
 
-### Doctor Schema
-```javascript
-{
-  userId: ObjectId (ref: User),
-  specialization: String,
-  license: String,
-  experience: Number,
-  bio: String,
-  consultationFee: Number,
-  availableDays: [String],
-  availableHours: { start: String, end: String },
-  rating: Number,
-  totalRatings: Number,
-  isVerified: Boolean,
-  isAvailable: Boolean
-}
-```
-
-### Appointment Schema
-```javascript
-{
-  patientId: ObjectId (ref: User),
-  doctorId: ObjectId (ref: Doctor),
-  date: Date,
-  time: String,
-  status: String (pending/confirmed/cancelled/completed),
-  type: String (consultation/follow-up),
-  notes: String,
-  symptoms: String,
-  prescription: String,
-  createdAt: Date
-}
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-- `PORT`: Server port (default: 5000)
-- `NODE_ENV`: Environment (development/production)
-- `MONGO_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT tokens
-- `CORS_ORIGIN`: Allowed CORS origins
-- `MAX_FILE_SIZE`: Maximum file upload size in bytes
-- `UPLOAD_PATH`: Directory for uploaded files
+The application will start on `http://localhost:3000`
 
 ## 📁 Project Structure
 
 ```
-tabib-iq-backend/
-├── server.js          # Main application file
-├── package.json       # Dependencies and scripts
-├── .env              # Environment variables
-├── env.example       # Environment variables template
-├── env.production    # Production environment variables
-├── uploads/          # File upload directory
-├── README.md         # This file
-├── .gitignore        # Git ignore rules
-├── Procfile          # Heroku configuration
-├── railway.json      # Railway configuration
-├── render.yaml       # Render configuration
-└── vercel.json       # Vercel configuration
+tabib-iq-frontend/
+├── public/                 # Static files
+│   ├── index.html         # Main HTML file
+│   ├── favicon.ico        # App icon
+│   └── manifest.json      # PWA manifest
+├── src/                   # Source code
+│   ├── App.js            # Main App component
+│   ├── AuthContext.js    # Authentication context
+│   ├── Login.js          # Login component
+│   ├── UserHome.js       # User home page
+│   ├── DoctorDashboard.js # Doctor dashboard
+│   ├── AdminDashboard.js # Admin dashboard
+│   ├── locales/          # Translation files
+│   │   ├── ar/           # Arabic translations
+│   │   ├── en/           # English translations
+│   │   └── ku/           # Kurdish translations
+│   └── index.js          # App entry point
+├── package.json          # Dependencies and scripts
+├── .env                  # Environment variables
+├── vercel.json           # Vercel deployment config
+├── netlify.toml          # Netlify deployment config
+└── railway.json          # Railway deployment config
 ```
 
-## 🚀 Deployment
+## 🌐 Deployment
 
-### Backend (Railway)
-1. Connect your GitHub repository to Railway
-2. Set environment variables in Railway dashboard:
-   ```env
-   NODE_ENV=production
-   PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret
-   CORS_ORIGIN=https://tabib-iq-frontend.vercel.app
-   MAX_FILE_SIZE=5242880
-   UPLOAD_PATH=./uploads
-   ```
-3. Deploy automatically
-
-### Frontend (Vercel)
+### Vercel (Recommended)
 1. Connect your GitHub repository to Vercel
 2. Set environment variables in Vercel dashboard:
    ```env
-   REACT_APP_API_URL=https://your-railway-backend-url.railway.app/api
+   REACT_APP_API_URL=https://tabib-iq-backend-production.up.railway.app/api
    ```
 3. Deploy automatically
 
-### Backup (Vercel for Backend)
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run: `vercel`
-3. Set environment variables in Vercel dashboard
+### Netlify
+1. Connect your GitHub repository to Netlify
+2. Set environment variables in Netlify dashboard
+3. Deploy automatically
 
-## 🔍 Health Check
+### Railway
+1. Connect your GitHub repository to Railway
+2. Set environment variables in Railway dashboard
+3. Deploy automatically
 
-The API includes health check endpoints:
+## 🔧 Configuration
 
-### Root endpoint (`GET /`)
-```json
-{
-  "message": "Tabib IQ API is running!",
-  "version": "1.0.0",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "endpoints": {
-    "health": "/api/health",
-    "auth": {
-      "register": "/api/auth/register",
-      "login": "/api/auth/login"
-    },
-    "doctors": {
-      "list": "/api/doctors",
-      "create": "/api/doctors",
-      "get": "/api/doctors/:id"
-    },
-    "appointments": {
-      "create": "/api/appointments",
-      "patient": "/api/appointments/patient/:patientId",
-      "doctor": "/api/appointments/doctor/:doctorId",
-      "update": "/api/appointments/:id/status"
-    }
-  }
-}
-```
+### Environment Variables
+- `REACT_APP_API_URL`: Backend API URL
 
-### Health check (`GET /api/health`)
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "database": "connected",
-  "uptime": 123.456,
-  "environment": "production"
-}
-```
+### Build Configuration
+- Build command: `npm run build`
+- Output directory: `build`
+- Node version: 18.x
+
+## 📱 Features
+
+### User Features
+- Browse doctors by specialty and location
+- Book appointments with doctors
+- Manage personal profile
+- View appointment history
+- Medicine reminders
+
+### Doctor Features
+- Doctor dashboard
+- Appointment management
+- Patient records
+- Analytics and reports
+
+### Admin Features
+- User management
+- Doctor approval system
+- Health center management
+- System analytics
+
+## 🎨 Design
+
+- **Color Scheme**: Blue and teal theme
+- **Typography**: Modern and readable fonts
+- **Layout**: Responsive grid system
+- **Icons**: Material Design icons
+- **Animations**: Smooth transitions and hover effects
+
+## 🌍 Internationalization
+
+The app supports three languages:
+- **Arabic (ar)**: Right-to-left layout
+- **English (en)**: Left-to-right layout  
+- **Kurdish (ku)**: Right-to-left layout
+
+Translation files are located in `src/locales/`
 
 ## 🤝 Contributing
 
